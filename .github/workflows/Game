@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Middle School Teams & Players — 2025 Roster Manager</title>
+  <style>
+    :root{--bg:#0f172a;--card:#111827;--muted:#9ca3af;--accent:#06b6d4}
+    body{font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;margin:0;background:linear-gradient(180deg,#071126 0%,#071821 100%);color:#e6eef6}
+    header{padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;gap:12px;align-items:center}
+    h1{font-size:18px;margin:0}
+    .container{display:flex;gap:18px;padding:18px;max-width:1200px;margin:18px auto}
+    .panel{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 6px 18px rgba(2,6,23,.6);flex:1}
+    .sidebar{width:320px;flex:0 0 320px}
+    input,select,textarea,button{font:inherit}
+    .list{max-height:560px;overflow:auto;margin-top:8px}
+    .team-item{padding:8px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;gap:8px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);margin-bottom:8px}
+    .player{padding:8px;border-radius:8px;background:rgba(255,255,255,0.01);margin-bottom:6px}
+    .muted{color:var(--muted)}
+    .controls{display:flex;gap:8px;margin-top:8px}
+    .btn{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:8px;color:inherit;cursor:pointer}
+    .primary{background:linear-gradient(90deg,var(--accent),#38bdf8);color:#012;color:#012;border:none}
+    textarea{width:100%;height:90px;background:transparent;border:1px dashed rgba(255,255,255,0.04);padding:8px;border-radius:8px;color:inherit}
+    .small{font-size:13px}
+    .stat{display:inline-block;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,0.02);margin-right:6px}
+    footer{padding:12px;text-align:center;color:var(--muted);font-size:13px}
+    @media (max-width:880px){.container{flex-direction:column}.sidebar{width:auto}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Middle School Teams & Players — 2025</h1>
+    <div class="muted small">Single‑file roster manager — generates shareable URL</div>
+  </header>
+
+  <div class="container">
+    <div class="panel sidebar">
+      <strong>Add / Edit Team</strong>
+      <div style="margin-top:8px">
+        <input id="teamName" placeholder="School name (e.g. West Ridge Middle)" style="width:100%;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit" />
+      </div>
+      <div class="controls">
+        <button class="btn" id="addTeam">Add Team</button>
+        <button class="btn" id="importJson">Import JSON</button>
+      </div>
+
+      <div style="margin-top:12px">
+        <strong>Data (export / share)</strong>
+        <div class="controls">
+          <button class="btn" id="exportJson">Export JSON</button>
+          <button class="btn primary" id="shareUrl">Generate Shareable URL</button>
+        </div>
+        <div style="margin-top:8px"><textarea id="dataArea" placeholder='Paste JSON here to import or edit'></textarea></div>
+      </div>
+
+      <div style="margin-top:12px">
+        <strong>Sample actions</strong>
+        <div class="controls">
+          <button class="btn" id="loadSample">Load Sample Teams</button>
+          <button class="btn" id="clearAll">Clear All</button>
+        </div>
+        <div class="muted small" style="margin-top:8px">Tip: Click a team to view players. Click a player to edit. Use "Generate Shareable URL" and copy the resulting link (it encodes your data into the URL hash).</div>
+      </div>
+    </div>
+
+    <div class="panel" style="flex:1.6">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <strong>Teams</strong>
+          <div class="muted small">Click a team to open its roster</div>
+        </div>
+        <div>
+          <input id="search" placeholder="Search teams / players" style="padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit" />
+        </div>
+      </div>
+
+      <div class="list" id="teamList"></div>
+
+      <hr style="border:none;height:1px;background:rgba(255,255,255,0.03);margin:12px 0" />
+
+      <div id="rosterPanel" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <h2 id="rosterTitle" style="margin:0;font-size:16px"></h2>
+            <div class="muted small">Roster (click a player to edit)</div>
+          </div>
+          <div>
+            <button class="btn" id="addPlayerBtn">Add Player</button>
+            <button class="btn" id="backTeams">Back to Teams</button>
+          </div>
+        </div>
+
+        <div id="playersList" style="margin-top:10px"></div>
+
+        <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.03);padding-top:12px">
+          <strong>Player Editor</strong>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <input id="pName" placeholder="Player name" style="flex:1;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit" />
+            <input id="pGrade" placeholder="Grade (e.g. 8)" style="width:90px;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit" />
+            <input id="pNumber" placeholder="#" style="width:70px;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit" />
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <input id="pHeight" placeholder="Height (5'8\")" style="padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit" />
+            <input id="pWeight" placeholder="Weight (lbs)" style="width:110px;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit" />
+            <input id="p40" placeholder="40yd (~4.7)" style="width:120px;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit" />
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+            <select id="pPos"><option>WR</option><option>QB</option><option>RB</option><option>OL</option><option>DL</option><option>LB</option><option>DB</option></select>
+            <input id="pSpeed" placeholder="Speed (1-10)" style="width:120px;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit" />
+            <input id="pCatch" placeholder="Catch (1-10)" style="width:120px;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit" />
+            <input id="pAgility" placeholder="Agility (1-10)" style="width:120px;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit" />
+          </div>
+
+          <div style="margin-top:8px;display:flex;gap:8px">
+            <button class="btn primary" id="savePlayer">Save Player</button>
+            <button class="btn" id="deletePlayer">Delete Player</button>
+            <button class="btn" id="markMVP">Mark MVP</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>Made for middle school roster management — 2025. No external servers: data is stored in your browser or encoded into a share URL.</footer>
+
+<script>
+(function(){
+  // Simple app state
+  let data = { teams: [] };
+  let activeTeamId = null;
+  let activePlayerId = null;
+
+  // Basic helpers
+  const $ = id => document.getElementById(id);
+  const uid = ()=>Math.random().toString(36).slice(2,9);
+
+  function renderTeams(filter=''){
+    const list = $('teamList'); list.innerHTML='';
+    const q = filter.trim().toLowerCase();
+    data.teams.forEach(team=>{
+      if(q){
+        const hay = (team.name + ' ' + (team.players||[]).map(p=>p.name).join(' ')).toLowerCase();
+        if(!hay.includes(q)) return;
+      }
+      const el = document.createElement('div'); el.className='team-item';
+      el.innerHTML = `<div><strong>${escapeHtml(team.name)}</strong><div class='muted small'>${(team.players||[]).length} players</div></div>`;
+      const right = document.createElement('div');
+      const btn = document.createElement('button'); btn.className='btn small'; btn.textContent='Open';
+      btn.onclick = ()=>openTeam(team.id);
+      right.appendChild(btn);
+      el.appendChild(right);
+      list.appendChild(el);
+    });
+  }
+
+  function openTeam(id){
+    activeTeamId = id; activePlayerId = null;
+    const team = data.teams.find(t=>t.id===id);
+    $('rosterPanel').style.display='block';
+    $('rosterTitle').textContent = team.name;
+    renderPlayers(team);
+  }
+
+  function backToTeams(){ activeTeamId=null; activePlayerId=null; $('rosterPanel').style.display='none'; }
+
+  function renderPlayers(team){
+    const out = $('playersList'); out.innerHTML='';
+    (team.players||[]).forEach(p=>{
+      const d = document.createElement('div'); d.className='player';
+      d.innerHTML = `<div style='display:flex;justify-content:space-between;align-items:center'><div><strong>${escapeHtml(p.name)}</strong> <span class='muted small'>#${p.number||''} • ${p.grade||''} grade • ${p.pos||''}</span><div style='margin-top:6px'><span class='stat'>Speed ${p.speed||''}</span><span class='stat'>Catch ${p.catch||''}</span><span class='stat'>Ag ${p.agility||''}</span>${p.mvp?'<span class="stat">MVP</span>':''}</div></div><div><button class='btn' onclick='window.__app.editPlayer("${p.id}")'>Edit</button></div></div>`;
+      out.appendChild(d);
+    });
+  }
+
+  // Player editor helpers exposed to window for inline onclick from render
+  window.__app = {
+    editPlayer(id){
+      const team = data.teams.find(t=>t.id===activeTeamId);
+      if(!team) return;
+      const p = team.players.find(x=>x.id===id);
+      if(!p) return;
+      activePlayerId = id;
+      $('pName').value = p.name||''; $('pGrade').value = p.grade||''; $('pNumber').value = p.number||'';
+      $('pHeight').value = p.height||''; $('pWeight').value = p.weight||''; $('p40').value = p.dash||'';
+      $('pPos').value = p.pos||'WR'; $('pSpeed').value = p.speed||''; $('pCatch').value = p.catch||''; $('pAgility').value = p.agility||'';
+      window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+    }
+  };
+
+  function savePlayer(){
+    const team = data.teams.find(t=>t.id===activeTeamId); if(!team) return alert('No team selected');
+    const p = activePlayerId ? team.players.find(x=>x.id===activePlayerId) : null;
+    const newP = {
+      id: p? p.id : uid(),
+      name: $('pName').value || 'Unknown',
+      grade: $('pGrade').value,
+      number: $('pNumber').value,
+      height: $('pHeight').value,
+      weight: $('pWeight').value,
+      dash: $('p40').value,
+      pos: $('pPos').value,
+      speed: Number($('pSpeed').value)||0,
+      catch: Number($('pCatch').value)||0,
+      agility: Number($('pAgility').value)||0,
+      mvp: p? p.mvp : false
+    };
+    if(p){
+      const idx = team.players.findIndex(x=>x.id===p.id); team.players[idx] = newP;
+    } else {
+      team.players.push(newP);
+    }
+    saveLocal(); renderPlayers(team); activePlayerId = null; clearEditor();
+  }
+
+  function deletePlayer(){
+    if(!confirm('Delete player?')) return;
+    const team = data.teams.find(t=>t.id===activeTeamId); if(!team) return;
+    if(!activePlayerId) return alert('Pick a player by clicking Edit first');
+    team.players = team.players.filter(x=>x.id!==activePlayerId);
+    saveLocal(); renderPlayers(team); activePlayerId=null; clearEditor();
+  }
+
+  function markMVP(){
+    const team = data.teams.find(t=>t.id===activeTeamId); if(!team) return;
+    if(!activePlayerId) return alert('Pick a player by clicking Edit first');
+    team.players.forEach(p=>p.mvp = (p.id===activePlayerId));
+    saveLocal(); renderPlayers(team);
+  }
+
+  function clearEditor(){ ['pName','pGrade','pNumber','pHeight','pWeight','p40','pSpeed','pCatch','pAgility'].forEach(id=>$(id).value=''); $('pPos').value='WR'; }
+
+  function addTeam(){ const name = $('teamName').value.trim(); if(!name) return alert('Enter a team name'); data.teams.push({id:uid(),name,players:[]}); $('teamName').value=''; saveLocal(); renderTeams(); }
+
+  function addPlayerButton(){ if(!activeTeamId) return alert('Open a team first'); activePlayerId=null; clearEditor(); }
+
+  function saveLocal(){ localStorage.setItem('ms_roster_2025', JSON.stringify(data)); }
+  function loadLocal(){ const s = localStorage.getItem('ms_roster_2025'); if(s){ try{ data = JSON.parse(s);}catch(e){} } }
+
+  function exportJson(){ const txt = JSON.stringify(data, null, 2); $('dataArea').value = txt; navigator.clipboard?.writeText(txt).catch(()=>{}); alert('JSON placed in textbox and (if allowed) copied to clipboard.'); }
+  function importJson(){ try{ const txt = $('dataArea').value.trim(); if(!txt) return alert('Paste JSON into the text area first'); const obj = JSON.parse(txt); if(!obj.teams) throw new Error('Invalid format'); data = obj; saveLocal(); renderTeams(); alert('Imported!'); }catch(e){ alert('Import failed: ' + e.message); } }
+
+  function loadSample(){ data = { teams: [ { id: uid(), name: 'West Ridge Middle School', players: [ {id:uid(),name:'Jordan "Jet" Ramirez',grade:'8',number:'12',pos:'WR',speed:9,catch:9,agility:8,mvp:true},{id:uid(),name:'Ethan Brooks',grade:'8',number:'7',pos:'QB',speed:6,catch:5,agility:6} ] }, { id: uid(), name: 'Lincoln Middle School', players: [ {id:uid(),name:'Tyler Kim',grade:'7',number:'4',pos:'RB',speed:8,catch:6,agility:8} ] } ] };
+    saveLocal(); renderTeams(); alert('Sample teams loaded. Edit them as you like.');
+  }
+
+  function clearAll(){ if(!confirm('Clear ALL teams and players from your browser?')) return; data={teams:[]}; saveLocal(); renderTeams(); backToTeams(); }
+
+  function escapeHtml(s){ return String(s).replace(/[&<>\"']/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+
+  // Shareable URL encoder (data placed into location.hash as base64)
+  function genShareUrl(){ try{
+    const txt = JSON.stringify(data);
+    const b = btoa(unescape(encodeURIComponent(txt)));
+    const url = location.origin + location.pathname + '#data=' + b;
+    prompt('Shareable URL (copy):', url);
+  }catch(e){ alert('Failed to encode: '+e.message); } }
+
+  function loadFromHash(){ if(location.hash.startsWith('#data=')){ try{ const b = location.hash.slice(6); const json = decodeURIComponent(escape(atob(b))); const obj = JSON.parse(json); if(obj.teams) { data = obj; saveLocal(); renderTeams(); alert('Loaded roster from URL data.'); } }catch(e){ console.warn('Bad data in URL', e); } } }
+
+  // Bindings
+  $('addTeam').onclick = addTeam; $('loadSample').onclick = loadSample; $('clearAll').onclick = clearAll;
+  $('exportJson').onclick = exportJson; $('importJson').onclick = importJson; $('importJson').onclick = importJson;
+  $('addPlayerBtn').onclick = addPlayerButton; $('savePlayer').onclick = savePlayer; $('deletePlayer').onclick = deletePlayer; $('markMVP').onclick = markMVP; $('backTeams').onclick = backToTeams; $('shareUrl').onclick = genShareUrl; $('search').oninput = (e)=>renderTeams(e.target.value);
+
+  // initial load
+  loadLocal(); loadFromHash(); renderTeams();
+})();
+</script>
+</body>
+</html>
+
